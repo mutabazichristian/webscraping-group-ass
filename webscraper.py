@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 
 url = 'https://app.isokko.com/shop?'
 response = requests.get(url)
@@ -10,32 +11,32 @@ soup = BeautifulSoup(html_content, 'html.parser')
 products = soup.find_all(class_='col')
 all_products = []
 
-"""
-class col
-    a:href -> product link
-    a:div:div:span:span -> Price
-    h2 -> product name
-"""
 for product in products:
-    # product link
+    # Product link
     a = product.find('a', href=True)
     link = a['href'] if a else "No link found"
 
-    # product name
+    # Product name
     h2 = product.find('h2')
     name = h2.text.strip() if h2 else "No name found"
 
-    # price
+    # Price
     divs = product.select_one('a div div span span')
     price = divs.text.strip() if divs else "No price found"
 
-    # remove the first 4 characters in price
-    prod = (name, price[4:], link)
-    all_products.append(prod)
-# 2 of the first products are empty from the site. we can reject those!
-all_products = all_products[2:]
-print(all_products)
+    # Remove first 4 characters in price (if necessary)
+    cleaned_price = price[4:] if price != "No price found" and len(price) > 4 else price
 
-# dump to json or csv
-# visualize & analyse
-# talk about trends in prices, average price, highest price, longest name lol
+    # Append product details
+    all_products.append([name, cleaned_price, link])
+
+# Exclude first two empty products
+all_products = all_products[2:]
+
+# Convert to DataFrame
+df = pd.DataFrame(all_products, columns=['Product Name', 'Price', 'Product Link'])
+
+# Save to CSV
+df.to_csv('scraped_products.csv', index=False)
+
+print("Data saved successfully to 'scraped_products.csv'")
